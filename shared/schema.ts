@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, timestamp, integer, boolean, jsonb, index } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -151,3 +152,66 @@ export type MessageWithAuthor = Message & {
 export type ArticleWithAuthor = Article & {
   author: User;
 };
+
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  communities: many(communities),
+  communityMemberships: many(communityMembers),
+  messages: many(messages),
+  articles: many(articles),
+  savedArticles: many(savedArticles),
+}));
+
+export const communitiesRelations = relations(communities, ({ one, many }) => ({
+  author: one(users, {
+    fields: [communities.createdBy],
+    references: [users.id],
+  }),
+  members: many(communityMembers),
+  messages: many(messages),
+}));
+
+export const communityMembersRelations = relations(communityMembers, ({ one }) => ({
+  community: one(communities, {
+    fields: [communityMembers.communityId],
+    references: [communities.id],
+  }),
+  user: one(users, {
+    fields: [communityMembers.userId],
+    references: [users.id],
+  }),
+}));
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  author: one(users, {
+    fields: [messages.authorId],
+    references: [users.id],
+  }),
+  community: one(communities, {
+    fields: [messages.communityId],
+    references: [communities.id],
+  }),
+  recipient: one(users, {
+    fields: [messages.recipientId],
+    references: [users.id],
+  }),
+}));
+
+export const articlesRelations = relations(articles, ({ one, many }) => ({
+  author: one(users, {
+    fields: [articles.authorId],
+    references: [users.id],
+  }),
+  savedBy: many(savedArticles),
+}));
+
+export const savedArticlesRelations = relations(savedArticles, ({ one }) => ({
+  user: one(users, {
+    fields: [savedArticles.userId],
+    references: [users.id],
+  }),
+  article: one(articles, {
+    fields: [savedArticles.articleId],
+    references: [articles.id],
+  }),
+}));

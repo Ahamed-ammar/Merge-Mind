@@ -8,12 +8,30 @@ import { ProfileEditModal } from "@/components/profile/profile-edit-modal";
 import { ArticleCard } from "@/components/articles/article-card";
 import { CommunityCard } from "@/components/communities/community-card";
 import { useAuth } from "@/hooks/use-auth";
+import { useAdminAuth } from "@/hooks/use-admin-auth";
 import { useQuery } from "@tanstack/react-query";
 import { MessageSquare, FileText, Mail, Github, Linkedin, Users, Bookmark, Calendar, TrendingUp } from "lucide-react";
 import type { ArticleWithAuthor, CommunityWithAuthor } from "@shared/schema";
 
 export default function Profile() {
   const { user } = useAuth();
+  const { isAdminAuthenticated } = useAdminAuth();
+  
+  // Create unified user object that works for both regular users and admin
+  const currentUser = user || (isAdminAuthenticated ? {
+    id: 'admin-user',
+    name: 'Admin',
+    email: 'admin@system.local',
+    avatar: null,
+    title: 'System Administrator',
+    location: null,
+    bio: 'System Administrator with full access to manage the platform.',
+    skills: ['Administration', 'System Management'],
+    github: null,
+    linkedin: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  } : null);
   const [editModalOpen, setEditModalOpen] = useState(false);
 
   const { data: userArticles = [] } = useQuery<ArticleWithAuthor[]>({
@@ -28,7 +46,7 @@ export default function Profile() {
     queryKey: ['/api/communities/user'],
   });
 
-  if (!user) {
+  if (!currentUser) {
     return (
       <div className="h-full flex items-center justify-center">
         <p className="text-muted-foreground">Loading profile...</p>
@@ -58,23 +76,23 @@ export default function Profile() {
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center space-x-6">
             <Avatar className="w-24 h-24 border-4 border-white">
-              <AvatarImage src={user.avatar || ""} />
+              <AvatarImage src={currentUser.avatar || ""} />
               <AvatarFallback className="text-2xl">
-                {user.name?.charAt(0) || "U"}
+                {currentUser.name?.charAt(0) || "U"}
               </AvatarFallback>
             </Avatar>
             <div>
               <h1 className="text-3xl font-bold" data-testid="text-user-name">
-                {user.name}
+                {currentUser.name}
               </h1>
-              {user.title && (
+              {currentUser.title && (
                 <p className="text-primary-foreground/80" data-testid="text-user-title">
-                  {user.title}
+                  {currentUser.title}
                 </p>
               )}
-              {user.location && (
+              {currentUser.location && (
                 <p className="text-primary-foreground/60" data-testid="text-user-location">
-                  {user.location}
+                  {currentUser.location}
                 </p>
               )}
             </div>
@@ -101,7 +119,7 @@ export default function Profile() {
                   </Button>
                 </div>
                 <p className="text-card-foreground" data-testid="text-user-bio">
-                  {user.bio || "No bio added yet. Click edit to add information about yourself."}
+                  {currentUser.bio || "No bio added yet. Click edit to add information about yourself."}
                 </p>
               </CardContent>
             </Card>
@@ -110,9 +128,9 @@ export default function Profile() {
             <Card>
               <CardContent className="p-6">
                 <h2 className="text-xl font-semibold text-card-foreground mb-4">Skills & Expertise</h2>
-                {user.skills && user.skills.length > 0 ? (
+                {currentUser.skills && currentUser.skills.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {user.skills.map(skill => (
+                    {currentUser.skills.map(skill => (
                       <Badge key={skill} variant="secondary" data-testid={`skill-${skill}`}>
                         {skill}
                       </Badge>
@@ -224,7 +242,7 @@ export default function Profile() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Member Since</span>
                   <span className="font-medium" data-testid="stat-member-since">
-                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { 
+                    {currentUser.createdAt ? new Date(currentUser.createdAt).toLocaleDateString('en-US', { 
                       month: 'short', 
                       year: 'numeric' 
                     }) : 'Recently'}
@@ -263,30 +281,30 @@ export default function Profile() {
                 <div className="flex items-center space-x-2">
                   <Mail className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm text-card-foreground" data-testid="text-user-email">
-                    {user.email}
+                    {currentUser.email}
                   </span>
                 </div>
                 
-                {user.github && (
+                {currentUser.github && (
                   <div className="flex items-center space-x-2">
                     <Github className="w-4 h-4 text-muted-foreground" />
                     <a 
-                      href={`https://github.com/${user.github}`}
+                      href={`https://github.com/${currentUser.github}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-primary hover:underline" 
                       data-testid="link-user-github"
                     >
-                      @{user.github}
+                      @{currentUser.github}
                     </a>
                   </div>
                 )}
                 
-                {user.linkedin && (
+                {currentUser.linkedin && (
                   <div className="flex items-center space-x-2">
                     <Linkedin className="w-4 h-4 text-muted-foreground" />
                     <a 
-                      href={user.linkedin}
+                      href={currentUser.linkedin}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-primary hover:underline" 

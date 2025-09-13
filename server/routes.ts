@@ -21,8 +21,32 @@ interface AuthenticatedRequest extends Request {
   user?: any;
 }
 
-// Simple middleware to extract user from headers (Firebase token would be validated here)
+// Enhanced middleware to handle both admin sessions and Firebase auth
 const authenticateUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  // Check for admin session first
+  if (req.session?.adminAuth) {
+    // Create mock admin user for API compatibility
+    req.user = {
+      id: 'admin-user',
+      email: 'admin@system.local',
+      firstName: null,
+      lastName: null,
+      profileImageUrl: null,
+      name: 'Admin',
+      avatar: null,
+      title: 'System Administrator',
+      location: null,
+      bio: 'System Administrator',
+      skills: ['Administration', 'System Management'],
+      github: null,
+      linkedin: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    return next();
+  }
+  
+  // Fall back to Firebase authentication
   const userEmail = req.headers['x-user-email'] as string;
   const userName = req.headers['x-user-name'] as string;
   
@@ -87,12 +111,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
           
           members.forEach(member => {
-            const memberWs = clients.get(member.email);
-            if (memberWs && memberWs.readyState === WebSocket.OPEN) {
-              memberWs.send(JSON.stringify({
-                type: 'community_message',
-                message: messageWithAuthor,
-              }));
+            if (member.email) {
+              const memberWs = clients.get(member.email);
+              if (memberWs && memberWs.readyState === WebSocket.OPEN) {
+                memberWs.send(JSON.stringify({
+                  type: 'community_message',
+                  message: messageWithAuthor,
+                }));
+              }
             }
           });
         } else if (message.type === 'direct_message') {
@@ -110,7 +136,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Send to recipient
           const recipient = await storage.getUser(message.recipientId);
-          if (recipient) {
+          if (recipient && recipient.email) {
             const recipientWs = clients.get(recipient.email);
             if (recipientWs && recipientWs.readyState === WebSocket.OPEN) {
               recipientWs.send(JSON.stringify({
