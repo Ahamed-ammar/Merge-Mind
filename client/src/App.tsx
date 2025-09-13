@@ -5,10 +5,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Navigation } from "@/components/layout/navigation";
-import { MobileNav } from "@/components/layout/mobile-nav";
 
 // Pages
-import Dashboard from "@/pages/dashboard";
+import Home from "@/pages/home";
 import Communities from "@/pages/communities";
 import CommunityChatPage from "@/pages/community-chat";
 import Articles from "@/pages/articles";
@@ -49,12 +48,12 @@ function AppContent() {
 
   // Show authenticated app when user is logged in
   return (
-    <div className="flex h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navigation />
       
       <main className="flex-1 overflow-hidden">
         <Switch>
-          <Route path="/" component={Dashboard} />
+          <Route path="/" component={Home} />
           <Route path="/communities" component={Communities} />
           <Route path="/communities/:id" component={CommunityChatPage} />
           <Route path="/articles" component={Articles} />
@@ -63,8 +62,6 @@ function AppContent() {
           <Route component={NotFound} />
         </Switch>
       </main>
-
-      <MobileNav />
     </div>
   );
 }
