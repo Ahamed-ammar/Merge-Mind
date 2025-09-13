@@ -6,8 +6,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Navigation } from "@/components/layout/navigation";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { AuthModal } from "@/components/auth/auth-modal";
-import { useState, useEffect } from "react";
 
 // Pages
 import Dashboard from "@/pages/dashboard";
@@ -17,18 +15,12 @@ import Articles from "@/pages/articles";
 import Profile from "@/pages/profile";
 import DirectMessages from "@/pages/direct-messages";
 import NotFound from "@/pages/not-found";
+import Landing from "@/pages/landing";
+import Login from "@/pages/login";
+import Signup from "@/pages/signup";
 
 function AppContent() {
   const { user, loading } = useAuth();
-  const [showAuthModal, setShowAuthModal] = useState(false);
-
-  useEffect(() => {
-    if (!loading && !user) {
-      setShowAuthModal(true);
-    } else {
-      setShowAuthModal(false);
-    }
-  }, [user, loading]);
 
   if (loading) {
     return (
@@ -43,31 +35,37 @@ function AppContent() {
     );
   }
 
+  // Show landing page and auth pages when user is not authenticated
+  if (!user && !loading) {
+    return (
+      <Switch>
+        <Route path="/" component={Landing} />
+        <Route path="/login" component={Login} />
+        <Route path="/signup" component={Signup} />
+        <Route component={Landing} />
+      </Switch>
+    );
+  }
+
+  // Show authenticated app when user is logged in
   return (
-    <>
-      <div className="flex h-screen bg-background">
-        {user && <Navigation />}
-        
-        <main className="flex-1 overflow-hidden">
-          <Switch>
-            <Route path="/" component={Dashboard} />
-            <Route path="/communities" component={Communities} />
-            <Route path="/communities/:id" component={CommunityChatPage} />
-            <Route path="/articles" component={Articles} />
-            <Route path="/profile" component={Profile} />
-            <Route path="/messages" component={DirectMessages} />
-            <Route component={NotFound} />
-          </Switch>
-        </main>
+    <div className="flex h-screen bg-background">
+      <Navigation />
+      
+      <main className="flex-1 overflow-hidden">
+        <Switch>
+          <Route path="/" component={Dashboard} />
+          <Route path="/communities" component={Communities} />
+          <Route path="/communities/:id" component={CommunityChatPage} />
+          <Route path="/articles" component={Articles} />
+          <Route path="/profile" component={Profile} />
+          <Route path="/messages" component={DirectMessages} />
+          <Route component={NotFound} />
+        </Switch>
+      </main>
 
-        {user && <MobileNav />}
-      </div>
-
-      <AuthModal 
-        open={showAuthModal} 
-        onClose={() => setShowAuthModal(false)} 
-      />
-    </>
+      <MobileNav />
+    </div>
   );
 }
 
