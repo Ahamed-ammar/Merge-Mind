@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { AdminAuthProvider, useAdminAuth } from "@/hooks/use-admin-auth";
 import { Navigation } from "@/components/layout/navigation";
 
 // Pages
@@ -21,8 +22,9 @@ import AdminLogin from "@/pages/admin-login";
 
 function AppContent() {
   const { user, loading } = useAuth();
+  const { isAdminAuthenticated, loading: adminLoading } = useAdminAuth();
 
-  if (loading) {
+  if (loading || adminLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -35,8 +37,8 @@ function AppContent() {
     );
   }
 
-  // Show landing page and auth pages when user is not authenticated
-  if (!user && !loading) {
+  // Show landing page and auth pages when neither user nor admin is authenticated
+  if (!user && !isAdminAuthenticated && !loading && !adminLoading) {
     return (
       <Switch>
         <Route path="/" component={Landing} />
@@ -48,7 +50,7 @@ function AppContent() {
     );
   }
 
-  // Show authenticated app when user is logged in
+  // Show authenticated app when user or admin is logged in
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation />
@@ -73,8 +75,10 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
-          <Toaster />
-          <AppContent />
+          <AdminAuthProvider>
+            <Toaster />
+            <AppContent />
+          </AdminAuthProvider>
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>

@@ -34,7 +34,7 @@ export default function AdminLogin() {
           title: "Success",
           description: "Admin login successful",
         });
-        setLocation("/admin/dashboard");
+        setLocation("/");
       } else {
         toast({
           title: "Error",
