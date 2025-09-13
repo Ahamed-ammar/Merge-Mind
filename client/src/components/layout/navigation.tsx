@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
+import { useAdminAuth } from "@/hooks/use-admin-auth";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,8 +20,27 @@ import { useState } from "react";
 
 export function Navigation() {
   const { user, logout } = useAuth();
+  const { isAdminAuthenticated } = useAdminAuth();
   const [location] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // Create a unified user object that works for both regular users and admin
+  const currentUser = user || (isAdminAuthenticated ? { name: "Admin", avatar: null } : null);
+  
+  const handleLogout = async () => {
+    if (isAdminAuthenticated) {
+      // Admin logout
+      try {
+        await fetch('/api/admin/logout', { method: 'POST' });
+        window.location.href = '/';
+      } catch (error) {
+        console.error('Admin logout error:', error);
+      }
+    } else {
+      // Regular user logout
+      logout();
+    }
+  };
 
   const navItems = [
     { href: "/", icon: Home, label: "Home", hasNotification: true },
@@ -100,9 +120,9 @@ export function Navigation() {
                 data-testid="button-user-menu"
               >
                 <Avatar className="w-6 h-6">
-                  <AvatarImage src={user?.avatar || ""} />
+                  <AvatarImage src={currentUser?.avatar || ""} />
                   <AvatarFallback className="bg-zinc-600 text-white text-xs">
-                    {user?.name?.charAt(0) || "U"}
+                    {currentUser?.name?.charAt(0) || "U"}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex items-center mt-1">
@@ -120,7 +140,7 @@ export function Navigation() {
                   </div>
                 </Link>
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="w-full px-4 py-2 text-left text-sm text-zinc-200 hover:bg-zinc-700 flex items-center"
                   data-testid="button-logout"
                 >
@@ -167,9 +187,9 @@ export function Navigation() {
           <Link href="/profile">
             <div className="flex flex-col items-center py-2 px-3 text-zinc-400 cursor-pointer" data-testid="button-mobile-profile">
               <Avatar className="w-5 h-5">
-                <AvatarImage src={user?.avatar || ""} />
+                <AvatarImage src={currentUser?.avatar || ""} />
                 <AvatarFallback className="bg-zinc-600 text-white text-xs">
-                  {user?.name?.charAt(0) || "U"}
+                  {currentUser?.name?.charAt(0) || "U"}
                 </AvatarFallback>
               </Avatar>
               <span className="text-xs mt-1 font-medium">Me</span>
@@ -178,7 +198,7 @@ export function Navigation() {
           
           {/* Mobile Logout */}
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="flex flex-col items-center py-2 px-3 text-zinc-400"
             data-testid="button-mobile-logout"
           >

@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAdminAuth } from "@/hooks/use-admin-auth";
 
 export default function AdminLogin() {
   const [username, setUsername] = useState("");
@@ -13,6 +14,7 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { checkAdminAuth } = useAdminAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +36,8 @@ export default function AdminLogin() {
           title: "Success",
           description: "Admin login successful",
         });
+        // Refresh admin auth status and redirect
+        checkAdminAuth();
         setLocation("/");
       } else {
         toast({
