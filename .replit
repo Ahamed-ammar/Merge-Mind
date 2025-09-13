@@ -22,15 +22,11 @@ externalPort = 3001
 localPort = 41593
 externalPort = 3000
 
-[[ports]]
-localPort = 43289
-externalPort = 3002
-
 [env]
 PORT = "5000"
 
 [agent]
-integrations = ["firebase_barebones_javascript:1.0.0", "javascript_websocket:1.0.0"]
+integrations = ["firebase_barebones_javascript:1.0.0", "javascript_websocket:1.0.0", "javascript_log_in_with_replit:1.0.0"]
 
 [workflows]
 runButton = "Project"
