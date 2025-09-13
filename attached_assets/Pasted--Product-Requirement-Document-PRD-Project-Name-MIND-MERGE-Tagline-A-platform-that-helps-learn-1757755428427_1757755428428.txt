@@ -1,0 +1,127 @@
+📄 Product Requirement Document (PRD)
+
+Project Name: MIND-MERGE
+Tagline: A platform that helps learners find study communities, chat, and share knowledge.
+
+1. Overview
+
+MIND-MERGE is a web application that connects learners with study communities. Users can search for and join communities, chat in groups or privately, and share articles. It fosters collaborative learning and knowledge-sharing in a responsive and user-friendly environment.
+
+2. Goals & Objectives
+
+Let users search or join study communities.
+
+Enable basic group chat inside communities.
+
+Provide direct one-to-one chat between users.
+
+Allow users to post and share articles.
+
+Provide personal user profiles.
+
+Deliver a clean, simple, and responsive UI.
+
+3. Features & Requirements
+Core Features (MVP)
+
+Authentication: User signup/login/logout with Firebase.
+
+Profile: View and edit personal profile.
+
+Communities: Search and join study communities.
+
+Community Chat: Real-time group chat using Socket.IO.
+
+Direct Chat: One-to-one chat between users.
+
+Articles: Users can post, view, and edit their own articles.
+
+Responsive UI: Works across desktop and mobile.
+
+Future Enhancements
+
+File sharing in chats (PDFs, notes).
+
+AI-powered study buddy recommendations.
+
+Community event scheduling.
+
+Dark mode.
+
+Voice/video chat integration.
+
+4. Tech Stack
+
+Frontend: React + Tailwind CSS
+
+Backend: Node.js + Express.js
+
+Database: MongoDB Atlas
+
+Authentication: Firebase Auth
+
+Real-time Chat: Socket.IO
+
+Deployment: Replit hosting
+
+5. User Stories
+
+As a user, I want to sign up and log in with Firebase, so I can access my account securely.
+
+As a user, I want to create and edit my profile, so others can see who I am.
+
+As a user, I want to search and join study communities, so I can connect with like-minded learners.
+
+As a user, I want to send and receive messages in community chats, so I can discuss with members.
+
+As a user, I want to send direct messages to individuals, so I can have private conversations.
+
+As a user, I want a clean and responsive UI, so I can use it on both mobile and desktop.
+
+As a user, I want to post my articles, so I can share knowledge and resources with the community.
+
+6. Acceptance Criteria
+
+Users can sign up and log in securely with Firebase Auth.
+
+Each user has a profile page with editable details.
+
+Users can search and join communities.
+
+Community chat works in real time.
+
+Direct (1:1) chat works in real time.
+
+Users can post, view, and edit articles.
+
+UI is responsive on both desktop and mobile.
+
+App runs without errors on Replit.
+
+7. Deliverables
+
+Complete project folder structure (frontend + backend + config).
+
+Frontend: React components for profile, communities, chat, and articles.
+
+Backend: Express server with Socket.IO + API routes for articles & communities.
+
+Database: MongoDB schemas for users, communities, messages, and articles.
+
+Authentication: Firebase integration for signup/login.
+
+Deployment: Working project hosted on Replit.
+
+API Documentation: Endpoints, request/response format, authentication flow.
+
+8. Constraints & Considerations
+
+Must work smoothly on Replit free tier.
+
+Use Firebase Auth (no custom auth).
+
+Keep dependencies lightweight.
+
+Security: validate inputs, hash sensitive data, prevent injection attacks.
+
+Responsive UI across devices.
