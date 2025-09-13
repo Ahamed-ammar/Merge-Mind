@@ -70,7 +70,14 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
     const user: User = { 
-      ...insertUser, 
+      ...insertUser,
+      title: insertUser.title ?? null,
+      location: insertUser.location ?? null,
+      avatar: insertUser.avatar ?? null,
+      bio: insertUser.bio ?? null,
+      skills: insertUser.skills ? [...insertUser.skills] : null,
+      github: insertUser.github ?? null,
+      linkedin: insertUser.linkedin ?? null,
       id,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -83,7 +90,18 @@ export class MemStorage implements IStorage {
     const user = this.users.get(id);
     if (!user) return undefined;
     
-    const updatedUser = { ...user, ...updateData, updatedAt: new Date() };
+    const cleanUpdateData = {
+      ...updateData,
+      title: updateData.title !== undefined ? updateData.title : user.title,
+      location: updateData.location !== undefined ? updateData.location : user.location,
+      avatar: updateData.avatar !== undefined ? updateData.avatar : user.avatar,
+      bio: updateData.bio !== undefined ? updateData.bio : user.bio,
+      skills: updateData.skills !== undefined ? (updateData.skills ? [...updateData.skills] : null) : user.skills,
+      github: updateData.github !== undefined ? updateData.github : user.github,
+      linkedin: updateData.linkedin !== undefined ? updateData.linkedin : user.linkedin,
+    };
+    
+    const updatedUser = { ...user, ...cleanUpdateData, updatedAt: new Date() };
     this.users.set(id, updatedUser);
     return updatedUser;
   }
@@ -137,6 +155,8 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const community: Community = {
       ...insertCommunity,
+      image: insertCommunity.image ?? null,
+      isActive: insertCommunity.isActive ?? true,
       id,
       memberCount: 1,
       createdAt: new Date(),
@@ -269,6 +289,8 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const message: Message = {
       ...insertMessage,
+      communityId: insertMessage.communityId ?? null,
+      recipientId: insertMessage.recipientId ?? null,
       id,
       createdAt: new Date(),
     };
@@ -326,6 +348,9 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const article: Article = {
       ...insertArticle,
+      image: insertArticle.image ?? null,
+      published: insertArticle.published ?? false,
+      likes: 0,
       id,
       createdAt: new Date(),
       updatedAt: new Date(),

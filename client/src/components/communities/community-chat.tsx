@@ -9,7 +9,7 @@ import { useWebSocket } from "@/hooks/use-websocket";
 import { useAuth } from "@/hooks/use-auth";
 import { ArrowLeft, Send, Smile, Search, Info } from "lucide-react";
 import { Link } from "wouter";
-import type { MessageWithAuthor, User } from "@shared/schema";
+import type { MessageWithAuthor, User, Community } from "@shared/schema";
 
 interface CommunityChatProps {
   communityId: string;
@@ -32,7 +32,7 @@ export function CommunityChat({ communityId }: CommunityChatProps) {
     enabled: !!communityId,
   });
 
-  const { data: community } = useQuery({
+  const { data: community } = useQuery<Community>({
     queryKey: ['/api/communities', communityId],
     enabled: !!communityId,
   });

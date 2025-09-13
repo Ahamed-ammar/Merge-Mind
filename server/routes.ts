@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
@@ -11,12 +11,12 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
-interface AuthenticatedRequest extends Express.Request {
+interface AuthenticatedRequest extends Request {
   user?: any;
 }
 
 // Simple middleware to extract user from headers (Firebase token would be validated here)
-const authenticateUser = async (req: AuthenticatedRequest, res: any, next: any) => {
+const authenticateUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const userEmail = req.headers['x-user-email'] as string;
   const userName = req.headers['x-user-name'] as string;
   
