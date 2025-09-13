@@ -1,0 +1,325 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from "ws";
+import { storage } from "./storage";
+import { 
+  insertUserSchema, 
+  insertCommunitySchema, 
+  insertMessageSchema, 
+  insertArticleSchema,
+  insertCommunityMemberSchema
+} from "@shared/schema";
+import { z } from "zod";
+
+interface AuthenticatedRequest extends Express.Request {
+  user?: any;
+}
+
+// Simple middleware to extract user from headers (Firebase token would be validated here)
+const authenticateUser = async (req: AuthenticatedRequest, res: any, next: any) => {
+  const userEmail = req.headers['x-user-email'] as string;
+  const userName = req.headers['x-user-name'] as string;
+  
+  if (!userEmail || !userName) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+
+  let user = await storage.getUserByEmail(userEmail);
+  if (!user) {
+    // Create user if doesn't exist
+    user = await storage.createUser({
+      email: userEmail,
+      name: userName,
+      bio: "",
+      skills: [],
+    });
+  }
+  
+  req.user = user;
+  next();
+};
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  const httpServer = createServer(app);
+  
+  // WebSocket Server for real-time chat
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  const clients = new Map<string, WebSocket>();
+  
+  wss.on('connection', (ws: WebSocket, req) => {
+    const userEmail = req.url?.split('userEmail=')[1]?.split('&')[0];
+    if (userEmail) {
+      clients.set(userEmail, ws);
+    }
+
+    ws.on('message', async (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        
+        if (message.type === 'community_message') {
+          const savedMessage = await storage.createMessage({
+            content: message.content,
+            authorId: message.authorId,
+            communityId: message.communityId,
+            type: 'community',
+          });
+          
+          // Broadcast to all community members
+          const members = await storage.getCommunityMembers(message.communityId);
+          const messageWithAuthor = {
+            ...savedMessage,
+            author: await storage.getUser(message.authorId),
+          };
+          
+          members.forEach(member => {
+            const memberWs = clients.get(member.email);
+            if (memberWs && memberWs.readyState === WebSocket.OPEN) {
+              memberWs.send(JSON.stringify({
+                type: 'community_message',
+                message: messageWithAuthor,
+              }));
+            }
+          });
+        } else if (message.type === 'direct_message') {
+          const savedMessage = await storage.createMessage({
+            content: message.content,
+            authorId: message.authorId,
+            recipientId: message.recipientId,
+            type: 'direct',
+          });
+          
+          const messageWithAuthor = {
+            ...savedMessage,
+            author: await storage.getUser(message.authorId),
+          };
+          
+          // Send to recipient
+          const recipient = await storage.getUser(message.recipientId);
+          if (recipient) {
+            const recipientWs = clients.get(recipient.email);
+            if (recipientWs && recipientWs.readyState === WebSocket.OPEN) {
+              recipientWs.send(JSON.stringify({
+                type: 'direct_message',
+                message: messageWithAuthor,
+              }));
+            }
+          }
+        }
+      } catch (error) {
+        console.error('WebSocket message error:', error);
+      }
+    });
+
+    ws.on('close', () => {
+      if (userEmail) {
+        clients.delete(userEmail);
+      }
+    });
+  });
+
+  // API Routes
+  
+  // User routes
+  app.get('/api/user/profile', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    res.json(req.user);
+  });
+
+  app.put('/api/user/profile', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    try {
+      const updateData = insertUserSchema.partial().parse(req.body);
+      const updatedUser = await storage.updateUser(req.user.id, updateData);
+      res.json(updatedUser);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : 'Invalid data' });
+    }
+  });
+
+  // Community routes
+  app.get('/api/communities', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    const search = req.query.search as string;
+    const communities = await storage.getCommunities(search);
+    
+    // Check if user is member of each community
+    const communitiesWithMembership = await Promise.all(
+      communities.map(async (community) => ({
+        ...community,
+        isMember: await storage.isUserInCommunity(community.id, req.user.id),
+      }))
+    );
+    
+    res.json(communitiesWithMembership);
+  });
+
+  app.get('/api/communities/user', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    const communities = await storage.getUserCommunities(req.user.id);
+    res.json(communities);
+  });
+
+  app.get('/api/communities/:id', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    const community = await storage.getCommunity(req.params.id);
+    if (!community) {
+      return res.status(404).json({ message: 'Community not found' });
+    }
+    
+    const author = await storage.getUser(community.createdBy);
+    const isMember = await storage.isUserInCommunity(community.id, req.user.id);
+    
+    res.json({
+      ...community,
+      author,
+      isMember,
+    });
+  });
+
+  app.post('/api/communities', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    try {
+      const communityData = insertCommunitySchema.parse({
+        ...req.body,
+        createdBy: req.user.id,
+      });
+      const community = await storage.createCommunity(communityData);
+      res.status(201).json(community);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : 'Invalid data' });
+    }
+  });
+
+  app.post('/api/communities/:id/join', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    try {
+      const alreadyMember = await storage.isUserInCommunity(req.params.id, req.user.id);
+      if (alreadyMember) {
+        return res.status(409).json({ message: 'Already a member' });
+      }
+      
+      const membership = await storage.joinCommunity(req.params.id, req.user.id);
+      res.status(201).json(membership);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to join community' });
+    }
+  });
+
+  app.delete('/api/communities/:id/leave', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    try {
+      const success = await storage.leaveCommunity(req.params.id, req.user.id);
+      if (!success) {
+        return res.status(404).json({ message: 'Not a member' });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to leave community' });
+    }
+  });
+
+  app.get('/api/communities/:id/members', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    const members = await storage.getCommunityMembers(req.params.id);
+    res.json(members);
+  });
+
+  // Message routes
+  app.get('/api/communities/:id/messages', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    const limit = parseInt(req.query.limit as string) || 50;
+    const messages = await storage.getCommunityMessages(req.params.id, limit);
+    res.json(messages);
+  });
+
+  app.get('/api/messages/:userId', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    const limit = parseInt(req.query.limit as string) || 50;
+    const messages = await storage.getDirectMessages(req.user.id, req.params.userId, limit);
+    res.json(messages);
+  });
+
+  // Article routes
+  app.get('/api/articles', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    const search = req.query.search as string;
+    const authorId = req.query.authorId as string;
+    const articles = await storage.getArticles(search, authorId);
+    res.json(articles);
+  });
+
+  app.get('/api/articles/user', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    const articles = await storage.getUserArticles(req.user.id);
+    res.json(articles);
+  });
+
+  app.get('/api/articles/:id', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    const article = await storage.getArticle(req.params.id);
+    if (!article) {
+      return res.status(404).json({ message: 'Article not found' });
+    }
+    
+    const author = await storage.getUser(article.authorId);
+    res.json({
+      ...article,
+      author,
+    });
+  });
+
+  app.post('/api/articles', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    try {
+      const articleData = insertArticleSchema.parse({
+        ...req.body,
+        authorId: req.user.id,
+      });
+      const article = await storage.createArticle(articleData);
+      res.status(201).json(article);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : 'Invalid data' });
+    }
+  });
+
+  app.put('/api/articles/:id', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    try {
+      const article = await storage.getArticle(req.params.id);
+      if (!article) {
+        return res.status(404).json({ message: 'Article not found' });
+      }
+      
+      if (article.authorId !== req.user.id) {
+        return res.status(403).json({ message: 'Not authorized' });
+      }
+      
+      const updateData = insertArticleSchema.partial().parse(req.body);
+      const updatedArticle = await storage.updateArticle(req.params.id, updateData);
+      res.json(updatedArticle);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : 'Invalid data' });
+    }
+  });
+
+  app.delete('/api/articles/:id', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    try {
+      const article = await storage.getArticle(req.params.id);
+      if (!article) {
+        return res.status(404).json({ message: 'Article not found' });
+      }
+      
+      if (article.authorId !== req.user.id) {
+        return res.status(403).json({ message: 'Not authorized' });
+      }
+      
+      const success = await storage.deleteArticle(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: 'Article not found' });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to delete article' });
+    }
+  });
+
+  app.post('/api/articles/:id/like', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    try {
+      const article = await storage.likeArticle(req.params.id);
+      if (!article) {
+        return res.status(404).json({ message: 'Article not found' });
+      }
+      res.json(article);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to like article' });
+    }
+  });
+
+  return httpServer;
+}
