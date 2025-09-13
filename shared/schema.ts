@@ -64,6 +64,13 @@ export const articles = pgTable("articles", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const savedArticles = pgTable("saved_articles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  articleId: varchar("article_id").references(() => articles.id).notNull(),
+  savedAt: timestamp("saved_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -95,6 +102,11 @@ export const insertCommunityMemberSchema = createInsertSchema(communityMembers).
   joinedAt: true,
 });
 
+export const insertSavedArticleSchema = createInsertSchema(savedArticles).omit({
+  id: true,
+  savedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -106,6 +118,8 @@ export type InsertArticle = z.infer<typeof insertArticleSchema>;
 export type Article = typeof articles.$inferSelect;
 export type InsertCommunityMember = z.infer<typeof insertCommunityMemberSchema>;
 export type CommunityMember = typeof communityMembers.$inferSelect;
+export type InsertSavedArticle = z.infer<typeof insertSavedArticleSchema>;
+export type SavedArticle = typeof savedArticles.$inferSelect;
 
 // Extended types for API responses
 export type CommunityWithAuthor = Community & {

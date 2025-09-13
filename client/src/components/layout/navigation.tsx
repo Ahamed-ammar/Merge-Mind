@@ -11,7 +11,9 @@ import {
   Bell,
   Search,
   ChevronDown,
-  Brain 
+  Brain,
+  User,
+  LogOut
 } from "lucide-react";
 import { useState } from "react";
 
@@ -91,10 +93,10 @@ export function Navigation() {
               );
             })}
             
-            {/* User Profile Dropdown */}
-            <div className="relative ml-2">
-              <button
-                className="flex flex-col items-center px-3 py-2 mx-1 transition-colors hover:bg-zinc-800 rounded-t-lg text-zinc-300 hover:text-white"
+            {/* User Profile Menu */}
+            <div className="relative ml-2 group">
+              <div
+                className="flex flex-col items-center px-3 py-2 mx-1 transition-colors hover:bg-zinc-800 rounded-t-lg text-zinc-300 hover:text-white cursor-pointer"
                 data-testid="button-user-menu"
               >
                 <Avatar className="w-6 h-6">
@@ -107,15 +109,22 @@ export function Navigation() {
                   <span className="text-xs font-medium">Me</span>
                   <ChevronDown className="w-3 h-3 ml-1" />
                 </div>
-              </button>
+              </div>
               
-              {/* Dropdown menu would go here */}
-              <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-zinc-800 rounded-md shadow-lg border border-zinc-200 dark:border-zinc-700 hidden">
+              {/* Dropdown menu */}
+              <div className="absolute right-0 top-full mt-1 w-48 bg-zinc-800 rounded-md shadow-lg border border-zinc-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                <Link href="/profile">
+                  <div className="px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-700 flex items-center cursor-pointer" data-testid="menu-profile">
+                    <User className="w-4 h-4 mr-2" />
+                    View Profile
+                  </div>
+                </Link>
                 <button
                   onClick={logout}
-                  className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center"
+                  className="w-full px-4 py-2 text-left text-sm text-zinc-200 hover:bg-zinc-700 flex items-center"
                   data-testid="button-logout"
                 >
+                  <LogOut className="w-4 h-4 mr-2" />
                   Sign out
                 </button>
               </div>
@@ -155,18 +164,26 @@ export function Navigation() {
           })}
           
           {/* Mobile User Profile */}
+          <Link href="/profile">
+            <div className="flex flex-col items-center py-2 px-3 text-zinc-400 cursor-pointer" data-testid="button-mobile-profile">
+              <Avatar className="w-5 h-5">
+                <AvatarImage src={user?.avatar || ""} />
+                <AvatarFallback className="bg-zinc-600 text-white text-xs">
+                  {user?.name?.charAt(0) || "U"}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-xs mt-1 font-medium">Me</span>
+            </div>
+          </Link>
+          
+          {/* Mobile Logout */}
           <button
             onClick={logout}
             className="flex flex-col items-center py-2 px-3 text-zinc-400"
             data-testid="button-mobile-logout"
           >
-            <Avatar className="w-5 h-5">
-              <AvatarImage src={user?.avatar || ""} />
-              <AvatarFallback className="bg-zinc-600 text-white text-xs">
-                {user?.name?.charAt(0) || "U"}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-xs mt-1 font-medium">Me</span>
+            <LogOut className="w-5 h-5" />
+            <span className="text-xs mt-1 font-medium">Exit</span>
           </button>
         </div>
       </div>

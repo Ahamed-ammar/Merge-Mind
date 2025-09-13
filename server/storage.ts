@@ -9,6 +9,8 @@ import {
   type InsertArticle,
   type CommunityMember,
   type InsertCommunityMember,
+  type SavedArticle,
+  type InsertSavedArticle,
   type CommunityWithAuthor,
   type MessageWithAuthor,
   type ArticleWithAuthor
@@ -49,6 +51,12 @@ export interface IStorage {
   updateArticle(id: string, article: Partial<InsertArticle>): Promise<Article | undefined>;
   deleteArticle(id: string): Promise<boolean>;
   likeArticle(id: string): Promise<Article | undefined>;
+  
+  // Saved Articles
+  saveArticle(userId: string, articleId: string): Promise<SavedArticle>;
+  unsaveArticle(userId: string, articleId: string): Promise<boolean>;
+  getSavedArticles(userId: string): Promise<ArticleWithAuthor[]>;
+  isArticleSaved(userId: string, articleId: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -57,6 +65,7 @@ export class MemStorage implements IStorage {
   private communityMembers: Map<string, CommunityMember> = new Map();
   private messages: Map<string, Message> = new Map();
   private articles: Map<string, Article> = new Map();
+  private savedArticles: Map<string, SavedArticle> = new Map();
 
   // Users
   async getUser(id: string): Promise<User | undefined> {
@@ -380,6 +389,55 @@ export class MemStorage implements IStorage {
     article.likes += 1;
     this.articles.set(id, article);
     return article;
+  }
+
+  // Saved Articles
+  async saveArticle(userId: string, articleId: string): Promise<SavedArticle> {
+    const id = randomUUID();
+    const savedArticle: SavedArticle = {
+      id,
+      userId,
+      articleId,
+      savedAt: new Date(),
+    };
+    
+    this.savedArticles.set(id, savedArticle);
+    return savedArticle;
+  }
+
+  async unsaveArticle(userId: string, articleId: string): Promise<boolean> {
+    const savedArticleKey = Array.from(this.savedArticles.entries())
+      .find(([_, saved]) => saved.userId === userId && saved.articleId === articleId)?.[0];
+    
+    if (!savedArticleKey) return false;
+    
+    this.savedArticles.delete(savedArticleKey);
+    return true;
+  }
+
+  async getSavedArticles(userId: string): Promise<ArticleWithAuthor[]> {
+    const savedArticleIds = Array.from(this.savedArticles.values())
+      .filter(saved => saved.userId === userId)
+      .map(saved => saved.articleId);
+    
+    const articles = await Promise.all(
+      savedArticleIds.map(id => this.getArticle(id))
+    );
+    
+    const validArticles = articles.filter(Boolean) as Article[];
+    
+    return Promise.all(validArticles.map(async (article) => {
+      const author = await this.getUser(article.authorId);
+      return {
+        ...article,
+        author: author!,
+      };
+    }));
+  }
+
+  async isArticleSaved(userId: string, articleId: string): Promise<boolean> {
+    return Array.from(this.savedArticles.values())
+      .some(saved => saved.userId === userId && saved.articleId === articleId);
   }
 }
 

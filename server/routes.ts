@@ -321,5 +321,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Saved Articles routes
+  app.get('/api/articles/saved', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    const savedArticles = await storage.getSavedArticles(req.user.id);
+    res.json(savedArticles);
+  });
+
+  app.post('/api/articles/:id/save', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    try {
+      const article = await storage.getArticle(req.params.id);
+      if (!article) {
+        return res.status(404).json({ message: 'Article not found' });
+      }
+
+      const alreadySaved = await storage.isArticleSaved(req.user.id, req.params.id);
+      if (alreadySaved) {
+        return res.status(409).json({ message: 'Article already saved' });
+      }
+
+      const savedArticle = await storage.saveArticle(req.user.id, req.params.id);
+      res.status(201).json(savedArticle);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to save article' });
+    }
+  });
+
+  app.delete('/api/articles/:id/unsave', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    try {
+      const success = await storage.unsaveArticle(req.user.id, req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: 'Article not saved' });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to unsave article' });
+    }
+  });
+
   return httpServer;
 }

@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProfileEditModal } from "@/components/profile/profile-edit-modal";
+import { ArticleCard } from "@/components/articles/article-card";
+import { CommunityCard } from "@/components/communities/community-card";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { MessageSquare, FileText, Mail, Github, Linkedin } from "lucide-react";
-import type { ArticleWithAuthor } from "@shared/schema";
+import { MessageSquare, FileText, Mail, Github, Linkedin, Users, Bookmark, Calendar, TrendingUp } from "lucide-react";
+import type { ArticleWithAuthor, CommunityWithAuthor } from "@shared/schema";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -15,6 +18,14 @@ export default function Profile() {
 
   const { data: userArticles = [] } = useQuery<ArticleWithAuthor[]>({
     queryKey: ['/api/articles/user'],
+  });
+
+  const { data: savedArticles = [] } = useQuery<ArticleWithAuthor[]>({
+    queryKey: ['/api/articles/saved'],
+  });
+
+  const { data: userCommunities = [] } = useQuery<CommunityWithAuthor[]>({
+    queryKey: ['/api/communities/user'],
   });
 
   if (!user) {
@@ -71,10 +82,10 @@ export default function Profile() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto p-6 pb-20 lg:pb-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="max-w-6xl mx-auto p-6 pb-20 lg:pb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Profile Info */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-3 space-y-6">
             {/* About Section */}
             <Card>
               <CardContent className="p-6">
@@ -86,7 +97,7 @@ export default function Profile() {
                     onClick={() => setEditModalOpen(true)}
                     data-testid="button-edit-profile"
                   >
-                    Edit
+                    Edit Profile
                   </Button>
                 </div>
                 <p className="text-card-foreground" data-testid="text-user-bio">
@@ -98,7 +109,7 @@ export default function Profile() {
             {/* Skills Section */}
             <Card>
               <CardContent className="p-6">
-                <h2 className="text-xl font-semibold text-card-foreground mb-4">Skills</h2>
+                <h2 className="text-xl font-semibold text-card-foreground mb-4">Skills & Expertise</h2>
                 {user.skills && user.skills.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {user.skills.map(skill => (
@@ -113,90 +124,215 @@ export default function Profile() {
               </CardContent>
             </Card>
 
-            {/* Recent Activity */}
+            {/* Content Tabs */}
             <Card>
               <CardContent className="p-6">
-                <h2 className="text-xl font-semibold text-card-foreground mb-4">Recent Activity</h2>
-                <div className="space-y-4">
-                  {recentActivities.map((activity, index) => {
-                    const Icon = activity.icon;
-                    return (
-                      <div key={index} className="flex items-start space-x-3" data-testid={`activity-${index}`}>
-                        <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0">
-                          <Icon className="w-4 h-4 text-accent" />
-                        </div>
-                        <div>
-                          <p className="text-card-foreground">{activity.description}</p>
-                          <p className="text-xs text-muted-foreground">{activity.timestamp}</p>
-                        </div>
+                <Tabs defaultValue="posts" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="posts" data-testid="tab-posts">
+                      My Posts ({userArticles.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="saved" data-testid="tab-saved">
+                      Saved Articles ({savedArticles.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="communities" data-testid="tab-communities">
+                      My Communities ({userCommunities.length})
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="posts" className="mt-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold">Published Articles</h3>
+                        <Badge variant="outline">{userArticles.length} articles</Badge>
                       </div>
-                    );
-                  })}
-                </div>
+                      {userArticles.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {userArticles.map(article => (
+                            <ArticleCard key={article.id} article={article} />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                          <p>You haven't published any articles yet.</p>
+                          <p className="text-sm">Share your knowledge with the community!</p>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="saved" className="mt-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold">Saved Articles</h3>
+                        <Badge variant="outline">{savedArticles.length} saved</Badge>
+                      </div>
+                      {savedArticles.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {savedArticles.map(article => (
+                            <ArticleCard key={article.id} article={article} />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Bookmark className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                          <p>No saved articles yet.</p>
+                          <p className="text-sm">Save articles you find interesting to read later!</p>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="communities" className="mt-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold">Joined Communities</h3>
+                        <Badge variant="outline">{userCommunities.length} communities</Badge>
+                      </div>
+                      {userCommunities.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {userCommunities.map(community => (
+                            <CommunityCard key={community.id} community={community} />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                          <p>No communities joined yet.</p>
+                          <p className="text-sm">Join communities to connect with like-minded learners!</p>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* Community Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Users className="w-5 h-5 text-primary" />
+                  <span>Community Status</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Member Since</span>
+                  <span className="font-medium" data-testid="stat-member-since">
+                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      year: 'numeric' 
+                    }) : 'Recently'}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Communities Joined</span>
+                  <span className="font-medium text-primary" data-testid="stat-communities-joined">
+                    {userCommunities.length}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Articles Published</span>
+                  <span className="font-medium text-primary" data-testid="stat-articles-published">
+                    {userArticles.length}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Articles Saved</span>
+                  <span className="font-medium text-primary" data-testid="stat-articles-saved">
+                    {savedArticles.length}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Contact Info */}
             <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold text-card-foreground mb-4">Contact Information</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Mail className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-card-foreground" data-testid="text-user-email">
-                      {user.email}
-                    </span>
-                  </div>
-                  
-                  {user.github && (
-                    <div className="flex items-center space-x-2">
-                      <Github className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm text-primary" data-testid="text-user-github">
-                        @{user.github}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {user.linkedin && (
-                    <div className="flex items-center space-x-2">
-                      <Linkedin className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm text-primary" data-testid="text-user-linkedin">
-                        LinkedIn Profile
-                      </span>
-                    </div>
-                  )}
+              <CardHeader>
+                <CardTitle>Contact Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Mail className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-card-foreground" data-testid="text-user-email">
+                    {user.email}
+                  </span>
                 </div>
+                
+                {user.github && (
+                  <div className="flex items-center space-x-2">
+                    <Github className="w-4 h-4 text-muted-foreground" />
+                    <a 
+                      href={`https://github.com/${user.github}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline" 
+                      data-testid="link-user-github"
+                    >
+                      @{user.github}
+                    </a>
+                  </div>
+                )}
+                
+                {user.linkedin && (
+                  <div className="flex items-center space-x-2">
+                    <Linkedin className="w-4 h-4 text-muted-foreground" />
+                    <a 
+                      href={user.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline" 
+                      data-testid="link-user-linkedin"
+                    >
+                      LinkedIn Profile
+                    </a>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             {/* Learning Stats */}
             <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold text-card-foreground mb-4">Learning Stats</h3>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-muted-foreground">Articles Published</span>
-                      <span className="text-card-foreground font-medium" data-testid="stat-articles-published">
-                        {userArticles.length}
-                      </span>
-                    </div>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                  <span>Learning Progress</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-muted-foreground">Study Streak</span>
+                    <span className="text-card-foreground font-medium" data-testid="stat-study-streak">
+                      25 days
+                    </span>
                   </div>
-                  
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-muted-foreground">Study Streak</span>
-                      <span className="text-card-foreground font-medium" data-testid="stat-study-streak">
-                        25 days
-                      </span>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <div className="bg-accent h-2 rounded-full" style={{width: '83%'}}></div>
-                    </div>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div className="bg-primary h-2 rounded-full" style={{width: '83%'}}></div>
                   </div>
+                </div>
+                
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-muted-foreground">Learning Goal Progress</span>
+                    <span className="text-card-foreground font-medium">67%</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div className="bg-primary h-2 rounded-full" style={{width: '67%'}}></div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground mt-4">
+                  <Calendar className="w-4 h-4" />
+                  <span>Active for {Math.floor(Math.random() * 30 + 1)} days this month</span>
                 </div>
               </CardContent>
             </Card>
