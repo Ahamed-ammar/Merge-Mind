@@ -17,6 +17,7 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
+import AdminLogin from "@/pages/admin-login";
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -41,6 +42,7 @@ function AppContent() {
         <Route path="/" component={Landing} />
         <Route path="/login" component={Login} />
         <Route path="/signup" component={Signup} />
+        <Route path="/admin" component={AdminLogin} />
         <Route component={Landing} />
       </Switch>
     );

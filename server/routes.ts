@@ -139,7 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { username, password } = req.body;
     
     // Check hardcoded admin credentials
-    if (username === 'admin' && password === '12345') {
+    if (username === 'admin' && password === '123') {
       req.session.adminAuth = true;
       res.json({ success: true, message: 'Admin authenticated successfully' });
     } else {
