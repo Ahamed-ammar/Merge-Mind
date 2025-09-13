@@ -11,6 +11,12 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
+declare module 'express-session' {
+  interface SessionData {
+    adminAuth?: boolean;
+  }
+}
+
 interface AuthenticatedRequest extends Request {
   user?: any;
 }
@@ -36,6 +42,14 @@ const authenticateUser = async (req: AuthenticatedRequest, res: Response, next: 
   }
   
   req.user = user;
+  next();
+};
+
+// Admin authentication middleware
+const authenticateAdmin = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.session?.adminAuth) {
+    return res.status(401).json({ message: "Admin authentication required" });
+  }
   next();
 };
 
@@ -119,6 +133,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API Routes
+  
+  // Admin authentication routes
+  app.post('/api/admin/login', (req: Request, res: Response) => {
+    const { username, password } = req.body;
+    
+    // Check hardcoded admin credentials
+    if (username === 'admin' && password === '12345') {
+      req.session.adminAuth = true;
+      res.json({ success: true, message: 'Admin authenticated successfully' });
+    } else {
+      res.status(401).json({ success: false, message: 'Invalid admin credentials' });
+    }
+  });
+  
+  app.post('/api/admin/logout', (req: Request, res: Response) => {
+    req.session.adminAuth = false;
+    res.json({ success: true, message: 'Admin logged out successfully' });
+  });
+  
+  // Admin status check
+  app.get('/api/admin/status', (req: Request, res: Response) => {
+    res.json({ isAuthenticated: !!req.session?.adminAuth });
+  });
   
   // User routes
   app.get('/api/user/profile', authenticateUser, async (req: AuthenticatedRequest, res) => {
